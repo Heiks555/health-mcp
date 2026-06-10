@@ -36,7 +36,8 @@ try {
 // Create McpServer instance
 const server = new McpServer({ name: 'health-mcp', version: '1.0.0' });
 
-// Register a simple tool `get_health_status` with no input that returns a text result.
+// Register the get_health_status tool BEFORE connecting transport
+// This ensures the tools capability is properly set up
 server.registerTool('get_health_status', {
   title: 'Get Health Status',
   description: 'Returns a simple health message indicating the MCP server is running'
@@ -47,18 +48,26 @@ server.registerTool('get_health_status', {
         type: 'text',
         text: 'MCP server is working!'
       }
-    ],
-    isError: false
+    ]
   };
 });
 
+console.log('✓ Tool "get_health_status" registered');
+
 // Expose an HTTP endpoint that delegates to the Streamable HTTP transport
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined
+});
 
 (async () => {
   // Attach the transport to the McpServer
   await server.connect(transport);
+  console.log('✓ Transport connected to server');
+  
+  // Verify server capabilities
+  const caps = server.server.getCapabilities();
+  console.log('✓ Server capabilities:', Object.keys(caps).filter(k => caps[k]));
 
   const httpServer = http.createServer(async (req, res) => {
     try {
@@ -71,7 +80,8 @@ const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefi
   });
 
   httpServer.listen(port, () => {
-    console.log(`MCP server listening on http://localhost:${port}/ (Streamable HTTP)`);
+    console.log(`✓ MCP server listening on http://localhost:${port}/ (Streamable HTTP)`);
+    console.log('  Tool "get_health_status" is available via MCP protocol');
   });
 
   // Graceful shutdown
