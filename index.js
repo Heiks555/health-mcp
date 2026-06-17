@@ -54,6 +54,137 @@ server.registerTool('get_health_status', {
 
 console.log('✓ Tool "get_health_status" registered');
 
+// Helper function to generate realistic mock sleep data
+function generateSleepData() {
+  const duration = Math.floor(Math.random() * 2) + 7; // 7-8 hours
+  const deepSleep = Math.floor(Math.random() * 10) + 15; // 15-25%
+  const rem = Math.floor(Math.random() * 5) + 20; // 20-25%
+  const hvr = Math.floor(Math.random() * 30) + 50; // 50-80 ms
+  
+  return {
+    duration_hours: duration,
+    deep_sleep_percentage: deepSleep,
+    rem_percentage: rem,
+    hrv_ms: hvr
+  };
+}
+
+// Helper function to generate realistic mock activity data
+function generateActivityData() {
+  const steps = Math.floor(Math.random() * 7000) + 8000; // 8000-15000 steps
+  const calories = Math.floor(Math.random() * 300) + 300; // 300-600 calories
+  const activeMinutes = Math.floor(Math.random() * 30) + 30; // 30-60 minutes
+  
+  return {
+    steps,
+    calories_burned: calories,
+    active_minutes: activeMinutes
+  };
+}
+
+// Helper function to generate realistic mock nutrition data
+function generateNutritionData() {
+  const calories = Math.floor(Math.random() * 500) + 2000; // 2000-2500 calories
+  const protein = Math.floor(Math.random() * 50) + 100; // 100-150g
+  const carbs = Math.floor(Math.random() * 100) + 200; // 200-300g
+  const fat = Math.floor(Math.random() * 40) + 60; // 60-100g
+  const water = (Math.random() * 1 + 2).toFixed(2); // 2-3 liters
+  
+  return {
+    calories,
+    protein_grams: protein,
+    carbs_grams: carbs,
+    fat_grams: fat,
+    water_liters: parseFloat(water)
+  };
+}
+
+// Register get_sleep_data tool
+server.registerTool('get_sleep_data', {
+  title: 'Get Sleep Data',
+  description: 'Returns mock sleep data including duration, deep sleep %, REM %, and HRV'
+}, (extra) => {
+  const sleepData = generateSleepData();
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(sleepData, null, 2)
+      }
+    ]
+  };
+});
+
+console.log('✓ Tool "get_sleep_data" registered');
+
+// Register get_activity_data tool
+server.registerTool('get_activity_data', {
+  title: 'Get Activity Data',
+  description: 'Returns mock activity data including steps, calories burned, and active minutes'
+}, (extra) => {
+  const activityData = generateActivityData();
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(activityData, null, 2)
+      }
+    ]
+  };
+});
+
+console.log('✓ Tool "get_activity_data" registered');
+
+// Register get_nutrition_data tool
+server.registerTool('get_nutrition_data', {
+  title: 'Get Nutrition Data',
+  description: 'Returns mock nutrition data including calories, macros, and water intake'
+}, (extra) => {
+  const nutritionData = generateNutritionData();
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(nutritionData, null, 2)
+      }
+    ]
+  };
+});
+
+console.log('✓ Tool "get_nutrition_data" registered');
+
+// Register get_weekly_summary tool
+server.registerTool('get_weekly_summary', {
+  title: 'Get Weekly Summary',
+  description: 'Returns all health data (sleep, activity, nutrition) for the last 7 days'
+}, (extra) => {
+  const weeklyData = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    
+    weeklyData.push({
+      date: date.toISOString().split('T')[0],
+      sleep: generateSleepData(),
+      activity: generateActivityData(),
+      nutrition: generateNutritionData()
+    });
+  }
+  
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(weeklyData, null, 2)
+      }
+    ]
+  };
+});
+
+console.log('✓ Tool "get_weekly_summary" registered');
+
 // Expose an HTTP endpoint that delegates to the Streamable HTTP transport
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 const transport = new StreamableHTTPServerTransport({
