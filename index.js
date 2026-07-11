@@ -1,5 +1,6 @@
 const http = require('http');
 const path = require('path');
+const { createHealthProvider } = require('./services/healthProvider');
 
 let McpServer;
 let StreamableHTTPServerTransport;
@@ -26,73 +27,51 @@ try {
   }
 }
 
-function generateSleepData() {
-  const duration = Math.floor(Math.random() * 2) + 7;
-  const deepSleep = Math.floor(Math.random() * 10) + 15;
-  const rem = Math.floor(Math.random() * 5) + 20;
-  const hrv = Math.floor(Math.random() * 30) + 50;
-  return { duration_hours: duration, deep_sleep_percentage: deepSleep, rem_percentage: rem, hrv_ms: hrv };
-}
-
-function generateActivityData() {
-  const steps = Math.floor(Math.random() * 7000) + 8000;
-  const calories = Math.floor(Math.random() * 300) + 300;
-  const activeMinutes = Math.floor(Math.random() * 30) + 30;
-  return { steps, calories_burned: calories, active_minutes: activeMinutes };
-}
-
-function generateNutritionData() {
-  const calories = Math.floor(Math.random() * 500) + 2000;
-  const protein = Math.floor(Math.random() * 50) + 100;
-  const carbs = Math.floor(Math.random() * 100) + 200;
-  const fat = Math.floor(Math.random() * 40) + 60;
-  const water = parseFloat((Math.random() * 1 + 2).toFixed(2));
-  return { calories, protein_grams: protein, carbs_grams: carbs, fat_grams: fat, water_liters: water };
-}
-
 // Registers all tools on a fresh McpServer instance.
 // Called per-request because the SDK requires a new transport (and server) for each
 // stateless request — reusing a stateless transport throws an error after the first call.
 function createServer() {
   const server = new McpServer({ name: 'health-mcp', version: '1.0.0' });
+  const healthProvider = createHealthProvider();
 
   server.registerTool('get_health_status', {
     title: 'Get Health Status',
-    description: 'Returns a simple health message indicating the MCP server is running',
-  }, () => ({ content: [{ type: 'text', text: 'MCP server is working!' }] }));
+    description: 'Returns live health status from Open Wearables or mock fallback data',
+  }, async () => {
+    const data = await healthProvider.getHealthStatus();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  });
 
   server.registerTool('get_sleep_data', {
     title: 'Get Sleep Data',
-    description: 'Returns mock sleep data including duration, deep sleep %, REM %, and HRV',
-  }, () => ({ content: [{ type: 'text', text: JSON.stringify(generateSleepData(), null, 2) }] }));
+    description: 'Returns sleep data from Open Wearables or mock fallback data',
+  }, async () => {
+    const data = await healthProvider.getSleepData();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  });
 
   server.registerTool('get_activity_data', {
     title: 'Get Activity Data',
-    description: 'Returns mock activity data including steps, calories burned, and active minutes',
-  }, () => ({ content: [{ type: 'text', text: JSON.stringify(generateActivityData(), null, 2) }] }));
+    description: 'Returns activity data from Open Wearables or mock fallback data',
+  }, async () => {
+    const data = await healthProvider.getActivityData();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  });
 
   server.registerTool('get_nutrition_data', {
     title: 'Get Nutrition Data',
-    description: 'Returns mock nutrition data including calories, macros, and water intake',
-  }, () => ({ content: [{ type: 'text', text: JSON.stringify(generateNutritionData(), null, 2) }] }));
+    description: 'Returns mock nutrition data (Open Wearables does not provide nutrition data)',
+  }, async () => {
+    const data = await healthProvider.getNutritionData();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  });
 
   server.registerTool('get_weekly_summary', {
     title: 'Get Weekly Summary',
-    description: 'Returns all health data (sleep, activity, nutrition) for the last 7 days',
-  }, () => {
-    const today = new Date();
-    const weeklyData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      weeklyData.push({
-        date: date.toISOString().split('T')[0],
-        sleep: generateSleepData(),
-        activity: generateActivityData(),
-        nutrition: generateNutritionData(),
-      });
-    }
-    return { content: [{ type: 'text', text: JSON.stringify(weeklyData, null, 2) }] };
+    description: 'Returns a weekly summary with sleep, activity, and nutrition data',
+  }, async () => {
+    const data = await healthProvider.getWeeklySummary();
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   });
 
   return server;
