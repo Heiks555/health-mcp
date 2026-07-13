@@ -1,7 +1,8 @@
 ---
-description: End-of-session — update AGENTS.md with what we learned, then commit and push
-allowed-tools: Read, Edit, Bash(git *)
+name: wrap
+description: End-of-session — update AGENTS.md with what we learned this session, prune it, then commit and push. Use when the user says wrap, wrap up, or is ending a work session.
 ---
+
 Wrap up this session.
 
 1. Look back over this session. Identify anything expensive for a future session to
