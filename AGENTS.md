@@ -22,6 +22,27 @@ test/                       node --test
 get_health_status, get_sleep_data, get_activity_data,
 get_nutrition_data (still mocked — OW has no nutrition source), get_weekly_summary
 
+## Claude API proxy (for the Suund app)
+
+The Expo app used to call api.anthropic.com directly with EXPO_PUBLIC_ANTHROPIC_API_KEY,
+which ships the key inside the app bundle. That's gone — the app must now call this
+server instead:
+
+- POST /api/analyze — one-shot health summary. Body: `{ healthData }`. Returns
+  `{ summary, tags }`.
+- POST /api/chat — conversational follow-up. Body: `{ healthData, messages }` where
+  messages is `[{ role: 'user'|'assistant', content }]`. Returns `{ message }`.
+
+Both require headers `X-Suund-App-Key` (must equal SUUND_APP_KEY — an app-level gate,
+not real user auth) and `X-Suund-User-Id` (a stable anonymous id the app generates and
+persists, used only for per-user rate limiting until real accounts exist).
+
+Logic lives in services/claudeProxy.js (system prompts, Anthropic call, tag parsing —
+ported from the app's old claudeService.ts) and services/rateLimiter.js (in-memory,
+resets at UTC midnight, currently one hardcoded 'free' tier at 3 requests/day). Rate
+limit state is per-process — fine on Railway's single instance, would need a shared
+store if this ever scales out.
+
 ## CRITICAL: MCP transport pattern
 
 Create a FRESH McpServer + StreamableHTTPServerTransport pair PER REQUEST.
